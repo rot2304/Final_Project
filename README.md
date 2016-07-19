@@ -296,3 +296,43 @@ class classifier:
 ```
 פונקציה זו קובעת כמה משפטים נחזה, אורך מינימלי של משפט וקוראת לפונקציית החיזוי "ייצור משפט" כמספר המשפטים שאותם נרצה לחזות ומדפיסה אותם לקובץ טקטסט חיצוני שאותו היא יוצרת
 קובץ טקסט זה מהווה בעצם את חילול נתוני הרצפים ע"פ המודל שנלמד.
+
+
+##שלב שישי- הערכת איכות המידע המשוחזר באמצעות השוואת הרצפים המסונתזים לרצפי המקור (כל רצף מסונתז יושווה לרצף הכי דומה לו בסט המקורי, לבסוף יחושב ממוצע). השתמשו במדד דמיון מתאים לטובת המשימה.  הערכת איכות המידע המשוחזר באמצעות השוואת הרצפים המסונתזים לרצפי המקור (כל רצף מסונתז יושווה לרצף הכי דומה לו בסט המקורי, לבסוף יחושב ממוצע). השתמשו במדד דמיון מתאים לטובת המשימה.
+
+המחלקה Similarity:
+```{r}
+Class Similarity
+WORD = re.compile(r'\w+')
+```
+
+
+מחלקה זו מהווה מימוש של מדד הדימיון הידוע cosinus similarity.
+```{r}
+def get_cosine(vec1, vec2):
+     intersection = set(vec1.keys()) & set(vec2.keys())
+     numerator = sum([vec1[x] * vec2[x] for x in intersection])
+
+     sum1 = sum([vec1[x]**2 for x in vec1.keys()])
+     sum2 = sum([vec2[x]**2 for x in vec2.keys()])
+     denominator = math.sqrt(sum1) * math.sqrt(sum2)
+
+     if not denominator:
+        return 0.0
+     else:
+        return float(numerator) / denominator
+```
+
+
+def text_to_vector(text):
+     words = WORD.findall(text)
+     return Counter(words)
+
+def get_text(path):
+    content = ""
+    for fname in glob.glob(path):
+        with open(fname, 'r') as content_file:
+            content = content + content_file.read()
+    return content
+Chat Conversation End
+
