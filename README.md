@@ -338,7 +338,7 @@ def text_to_vector(text):
      words = WORD.findall(text)
      return Counter(words)
 ```
-
+פונקציה זו ממירה מחרוזת לוקטור של מילים(מערך של מילים) ע"מ שנוכל לחשב על המסמכים את מדד הדמיון
 ```{r}
 def get_text(path):
     content = ""
@@ -347,6 +347,7 @@ def get_text(path):
             content = content + content_file.read()
     return content
 ```
+פונקציה זו קוראת את כל הטקסט מנתיב מסוים שנשלח לה כקלט.
 
 
 
