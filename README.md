@@ -325,7 +325,7 @@ def get_cosine(vec1, vec2):
      else:
         return float(numerator) / denominator
 ```
-פונקציה זו מחשבת את המדד 
+פונקציה זו מחשבת את המדד  מקבלת שני וקטורים ומחשבת עבורם את המדד cosine similarity.
 מדד זה מודד את הדמיון בין שני וקטורים  ע"י חישוב הקוסינוס של הזווית ביניהם.
 משקולת זו הוא מדד של אורינטציה ולא של חשיבות, ניתן להשתמש בו כהשואה בין מסמכים על מרחב מנורמל מכיוון שאנחנו לא לוקחים בחשבון רק את החשיבות של כל ה tf idf 
 של כל מילה אלא את הזווית בין המסמכים.
@@ -334,7 +334,8 @@ def get_cosine(vec1, vec2):
 def text_to_vector(text):
      words = WORD.findall(text)
      return Counter(words)
-
+```
+```{r}
 def get_text(path):
     content = ""
     for fname in glob.glob(path):
@@ -342,4 +343,6 @@ def get_text(path):
             content = content + content_file.read()
     return content
 ```
+
+
 
