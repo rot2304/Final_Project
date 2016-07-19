@@ -90,3 +90,119 @@ class Process:
 
 x_train מכיל מערך של מערכים כאשר כל מערך בו הוא משפט שהמילים בו מיוצגות ע"פ האינדקס המספרי שלהם
 y_train זהה, אך בעל הסטה ימינה לכל מילה במשפט
+
+##שלב רביעי- כתיבת קוד פייתון לאלגוריתם RNN שבאמצעותו יופק מודל לשחזור הנתונים:
+המחלקה RNNNumpy:
+
+```{r}
+class RNNNumpy:
+
+    def __init__(self, word_dim, hidden_dim=100, bptt_truncate=4):
+        # Assign instance variables
+        self.npa = numpy.array
+        self.word_dim = word_dim
+        self.hidden_dim = hidden_dim
+        self.bptt_truncate = bptt_truncate
+        # Randomly initialize the network parameters
+        self.U = numpy.random.uniform(-numpy.sqrt(1. / word_dim), numpy.sqrt(1. / word_dim), (hidden_dim, word_dim))
+        self.V = numpy.random.uniform(-numpy.sqrt(1. / hidden_dim), numpy.sqrt(1. / hidden_dim), (word_dim, hidden_dim))
+        self.W = numpy.random.uniform(-numpy.sqrt(1. / hidden_dim), numpy.sqrt(1. / hidden_dim), (hidden_dim, hidden_dim))
+```
+יצרנו מחלקה זו ע"מ לבנות את מודל רשת הנוירונים. 
+לצורך בניית המודל, בחרנו להשתמש ב100 שכבות ואתחלנו בצורה רנדומלית את הוקטורים U,V,W.
+
+```{r}
+    def forward_propagation(self, x):
+        # The total number of time steps
+        T = len(x)
+        # During forward propagation we save all hidden states in s because need them later.
+        # We add one additional element for the initial hidden, which we set to 0
+        s = numpy.zeros((T + 1, self.hidden_dim))
+        s[-1] = numpy.zeros(self.hidden_dim)
+        # The outputs at each time step. Again, we save them for later.
+        o = numpy.zeros((T, self.word_dim))
+        # For each time step...
+        for t in numpy.arange(T):
+            # Note that we are indxing U by x[t]. This is the same as multiplying U with a one-hot vector.
+            s[t] = numpy.tanh(self.U[:, x[t]] + self.W.dot(s[t - 1]))
+            o[t] = self.softmax(self.V.dot(s[t]))
+
+        return [o, s]
+
+        RNNNumpy.forward_propagation = forward_propagation
+```
+פונקציה זו מחזירה לנו שני מערכים. הראשון הוא מערך של מערכים שכל מערך בו מייצג את ההסתברות של כל מילה במאגר המילים שלנו להופיע אחרי המילה הספיציפית במשפט שנשלח כקלט לפונקציה. המערך השני מייצג את המצבים החבויים ויהווה לנו לעזר בשלב מאוחר יותר לצורך חישוב הגדיאנטים U,V,W.
+```{r}
+    def softmax(self,w, t=1.0):
+        e = numpy.exp(self.npa(w) / t)
+        dist = e / numpy.sum(e)
+        return dist
+        RNNNumpy.softmax = softmax
+```
+לשם חישוב מערך ההסתבוריות אנו נדרשים להשתמש בפונקציה זו ע"מ לחשב את ההסתברות
+```{r}
+    def predict(self, x):
+       # Perform forward propagation and return index of the highest score
+        o, s = self.forward_propagation(x)
+        return numpy.argmax(o, axis=1)
+
+        RNNNumpy.predict = predict
+```
+פונציה זו מקבלת משפט ומחזירה עבור כל מילה במשפט את האינדקס של המילה בעלת ההסתברות הכי גבוהה להופיע אחרי.
+```{r}
+    def calculate_total_loss(self, x, y):
+        L = 0
+        # For each sentence...
+        for i in numpy.arange(len(y)):
+            o, s = self.forward_propagation(x[i])
+            # We only care about our prediction of the "correct" words
+            correct_word_predictions = o[numpy.arange(len(y[i])), y[i]]
+            # Add to the loss based on how off we were
+            L += -1 * numpy.sum(numpy.log(correct_word_predictions))
+        return L
+```
+
+```{r}
+    def calculate_loss(self, x, y):
+        # Divide the total loss by the number of training examples
+        N = numpy.sum((len(y_i) for y_i in y))
+        return self.calculate_total_loss(x, y) / N
+```
+פונקציה זו נועדה למדוד את רמת השגיאות במודל . זאת ע"י השוואת החיזוי שהופק ע"י המודל לעומת טקסט המקור, זאת ע"מ לשפר ולאמן את המודל בתהליך איטרטיבי וע"מ לשפר את הגראדינטים (המשקולות).
+```{r}
+    def bptt(self, x, y):
+        T = len(y)
+        # Perform forward propagation
+        o, s = self.forward_propagation(x)
+        # We accumulate the gradients in these variables
+        dLdU = numpy.zeros(self.U.shape)
+        dLdV = numpy.zeros(self.V.shape)
+        dLdW = numpy.zeros(self.W.shape)
+        delta_o = o
+        delta_o[numpy.arange(len(y)), y] -= 1.
+        # For each output backwards...
+        for t in numpy.arange(T)[::-1]:
+            dLdV += numpy.outer(delta_o[t], s[t].T)
+            # Initial delta calculation
+            delta_t = self.V.T.dot(delta_o[t]) * (1 - (s[t] ** 2))
+            # Backpropagation through time (for at most self.bptt_truncate steps)
+            for bptt_step in numpy.arange(max(0, t - self.bptt_truncate), t + 1)[::-1]:
+                # print "Backpropagation step t=%d bptt step=%d " % (t, bptt_step)
+                dLdW += numpy.outer(delta_t, s[bptt_step - 1])
+                dLdU[:, x[bptt_step]] += delta_t
+                # Update delta for next step
+                delta_t = self.W.T.dot(delta_t) * (1 - s[bptt_step - 1] ** 2)
+        return [dLdU, dLdV, dLdW]
+```
+
+```{r}
+    # Performs one step of SGD.
+    def sgd_step(self, x, y, learning_rate):
+        # Calculate the gradients
+        dLdU, dLdV, dLdW = self.bptt(x, y)
+        # Change parameters according to gradients and learning rate
+        self.U -= learning_rate * dLdU
+        self.V -= learning_rate * dLdV
+        self.W -= learning_rate * dLdW
+```
+
