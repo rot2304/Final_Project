@@ -307,7 +307,10 @@ WORD = re.compile(r'\w+')
 ```
 
 
-מחלקה זו מהווה מימוש של מדד הדימיון הידוע cosinus similarity.
+מחלקה זו מהווה מימוש של מדד הדימיון הידוע  cosine similarity.
+
+
+
 ```{r}
 def get_cosine(vec1, vec2):
      intersection = set(vec1.keys()) & set(vec2.keys())
@@ -322,8 +325,12 @@ def get_cosine(vec1, vec2):
      else:
         return float(numerator) / denominator
 ```
-
-
+פונקציה זו מחשבת את המדד 
+מדד זה מודד את הדמיון בין שני וקטורים  ע"י חישוב הקוסינוס של הזווית ביניהם.
+משקולת זו הוא מדד של אורינטציה ולא של חשיבות, ניתן להשתמש בו כהשואה בין מסמכים על מרחב מנורמל מכיוון שאנחנו לא לוקחים בחשבון רק את החשיבות של כל ה tf idf 
+של כל מילה אלא את הזווית בין המסמכים.
+מדד זה ייצר לנו משקולת שתייצג כמה קשורים הם שני מסמכים ע"י התבוננות בזווית במקום בחשיבות.
+```{r}
 def text_to_vector(text):
      words = WORD.findall(text)
      return Counter(words)
@@ -334,5 +341,5 @@ def get_text(path):
         with open(fname, 'r') as content_file:
             content = content + content_file.read()
     return content
-Chat Conversation End
+```
 
