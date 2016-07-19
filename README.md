@@ -212,6 +212,7 @@ class RNNNumpy:
 בנוסף, ישנו משתנה אשר מהוה את קצב הלמידה שמגדיר עבורנו את גודל הצעד שאנו מבצעים כל איטרציה. יורחב עליו במהשך.
 
 ##שלב חמישי- כתיבת קוד לחילול נתוני רצפים ע"פ המודל שנלמד ובניית מודל והרצתו תוך שימוש בו לטובת חילול מידע:
+המחלקה classifier:
 ```{r}
 class classifier:
     def __init__(self, vocabulary_size, x_train, y_train):
@@ -228,6 +229,9 @@ class classifier:
         self.sentence_start_token = "SENTENCE_START"
         self.sentence_end_token = "SENTENCE_END"
 ```
+יצרנו מחלקה זו לצורך בניית מודל רשת הנוירונים שלנו.
+לצורך כך הכנסנו את כל הפרטמרים הנדרשים- קצב למידה, גודל הקורפוס, סט האימון המהווה קלט למודל.
+```{r}
     def train_with_sgd(self):
             # We keep track of the losses so we can plot them later
             learning_rate = self.learning_rate
@@ -251,7 +255,10 @@ class classifier:
                     # One SGD step
                     self.model.sgd_step(self.x_train[i], self.y_train[i], self.learning_rate)
                     num_examples_seen += 1
+```
+פונקציה זו מהווה לולאה חיצת אשר עוברת בצורה איטרטיבית על סט האימון בעזרת פונקציית העזר ע"מ לבנות את רשת הנוירונים ולהתאים את קצב הלמידה.
 
+```{r}
     def generate_sentence(self, word_to_index, index_to_word):
         # We start the sentence with the start token
         new_sentence = [word_to_index[self.sentence_start_token]]
@@ -269,10 +276,10 @@ class classifier:
         sentence_str = [index_to_word[x] for x in new_sentence[1:-1]]
 
         return sentence_str
+```
+פונקציה זו אחראית על משפט בודד. נתחיל כל משפט ע"י הטוקן שמסמן לנו את תחילת משפט ונבצע כל  פעם חיזוי לגבי המילה הבאה ונצרף אותה למשפט. כאשר החיזוי יחזיר לנו כמילה הבאה את המילה שמסמלת סוף משפט , נסיים לחזות ונחזיר את המשפט שהצטבר עד עכשיו.
 
-
-
-
+```{r}
     def start_generate(self,word_to_index, index_to_word):
      num_sentences = 100
      senten_min_length = 7
@@ -286,3 +293,6 @@ class classifier:
         text = text + " ".join(sent) + "." + "\n"
      with open("Output.txt", "w") as text_file:
       text_file.write(text)
+```
+פונקציה זו קובעת כמה משפטים נחזה, אורך מינימלי של משפט וקוראת לפונקציית החיזוי "ייצור משפט" כמספר המשפטים שאותם נרצה לחזות ומדפיסה אותם לקובץ טקטסט חיצוני שאותו היא יוצרת
+קובץ טקסט זה מהווה בעצם את חילול נתוני הרצפים ע"פ המודל שנלמד.
