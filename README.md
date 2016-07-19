@@ -211,3 +211,78 @@ class RNNNumpy:
 פונקציה זו עוברת באיטרציות על כל סט האימון ובכל איטרציה היא מכוונת את הפרמטרים להפחתת הטעות. אנו מעדכנים את הפרמטרים לכיוון שיפחית את הטעות. הכיוונים ניתנים לנו ע"י הגראדיאנטים ופונקציית ההפסד.
 בנוסף, ישנו משתנה אשר מהוה את קצב הלמידה שמגדיר עבורנו את גודל הצעד שאנו מבצעים כל איטרציה. יורחב עליו במהשך.
 
+##שלב חמישי- כתיבת קוד לחילול נתוני רצפים ע"פ המודל שנלמד ובניית מודל והרצתו תוך שימוש בו לטובת חילול מידע:
+```{r}
+class classifier:
+    def __init__(self, vocabulary_size, x_train, y_train):
+        numpy.random.seed(10)
+        model = RNN_Algorithem.RNNNumpy(vocabulary_size)
+        self.model = model
+        self.x_train = x_train
+        self.y_train = y_train
+        self.vocabulary_size = vocabulary_size
+        self.learning_rate = 0.005
+        self.nepoch = 50
+        self.evaluate_loss_after = 1
+        self.unknown_token = "UNKNOWN_TOKEN"
+        self.sentence_start_token = "SENTENCE_START"
+        self.sentence_end_token = "SENTENCE_END"
+```
+    def train_with_sgd(self):
+            # We keep track of the losses so we can plot them later
+            learning_rate = self.learning_rate
+            losses = []
+            num_examples_seen = 0
+            for epoch in range(self.nepoch):
+                # Optionally evaluate the loss
+                if (epoch % self.evaluate_loss_after == 0):
+                    loss = self.model.calculate_loss(self.x_train, self.y_train)
+                    losses.append((num_examples_seen, loss))
+                    time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    print( "%s: Loss after num_examples_seen=%d epoch=%d: %f" % (time, num_examples_seen, epoch, loss))
+
+                    # Adjust the learning rate if loss increases
+                    if (len(losses) > 1 and losses[-1][1] > losses[-2][1]):
+                        learning_rate = learning_rate * 0.5
+                        print("Setting learning rate to %f" % learning_rate)
+                    sys.stdout.flush()
+                # For each training example...
+                for i in range(len(self.y_train)):
+                    # One SGD step
+                    self.model.sgd_step(self.x_train[i], self.y_train[i], self.learning_rate)
+                    num_examples_seen += 1
+
+    def generate_sentence(self, word_to_index, index_to_word):
+        # We start the sentence with the start token
+        new_sentence = [word_to_index[self.sentence_start_token]]
+        # Repeat until we get an end token
+        while not new_sentence[-1] == word_to_index[self.sentence_end_token] :
+
+            next_word_probs = self.model.forward_propagation(new_sentence)
+            sampled_word = word_to_index[self.unknown_token]
+            # We don't want to sample unknown words
+            while sampled_word == word_to_index[self.unknown_token]:
+
+                samples = numpy.random.multinomial(1, next_word_probs[0][-1])
+                sampled_word = numpy.argmax(samples)
+            new_sentence.append(sampled_word)
+        sentence_str = [index_to_word[x] for x in new_sentence[1:-1]]
+
+        return sentence_str
+
+
+
+
+    def start_generate(self,word_to_index, index_to_word):
+     num_sentences = 100
+     senten_min_length = 7
+     text =""
+     for i in range(num_sentences):
+        sent = []
+        # We want long sentences, not sentences with one or two words
+        while len(sent) < senten_min_length:
+            sent = self.generate_sentence(word_to_index,index_to_word)
+        #print(" ".join(sent))
+        text = text + " ".join(sent) + "." + "\n"
+     with open("Output.txt", "w") as text_file:
+      text_file.write(text)
