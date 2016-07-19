@@ -195,6 +195,9 @@ class RNNNumpy:
         return [dLdU, dLdV, dLdW]
 ```
 
+ע"מ לחשב את הגראדינטים אשר ישמשו אותנו בפונקציה הבאה נשתמש  בפונקציה זו. 
+הגראדינטים אינם מחושבים רק לרגע הנוכחי אלא בהתחשבות בעבר.
+
 ```{r}
     # Performs one step of SGD.
     def sgd_step(self, x, y, learning_rate):
