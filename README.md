@@ -27,11 +27,12 @@ class Process:
     def __init__(self):
         # Assign instance variables
         self.vocabulary_size = 2000
-        self.unknown_token = "UNKNOWN_TOKEN"
-        self.sentence_start_token = "SENTENCE_START"
-        self.sentence_end_token = "SENTENCE_END"
-        self.X_train = None
-        self.y_train = None
+        self.unused_token = "UNKNOWN_TOKEN"
+        self.sentence_start = "SENTENCE_START"
+        self.sentence_end = "SENTENCE_END"
+        self.train_set = None
+        self.shifted_train = None
+
 ```
 יצרנו את מחלקה זו לצורך ביצוע עיבוד מוקדם.
 ביצענו איתחול למשתני המחלקה באופן הבא:
@@ -46,7 +47,8 @@ class Process:
             with open(fname, 'r') as content_file:
                 content = content + content_file.read()
         self.split_sentence(content)
-        return [self.X_train,self.y_train,self.vocabulary_size,self.word_to_index,self.index_to_word]
+        return [self.train_set, self.shifted_train, self.vocabulary_size, self.word_index_dictionary, self.index_word_dictionary]
+
 ```
 פןנקציה זו קוראת את התוכן מכל מסמכי הטקסט המופרדים לפי הרצאות ומכניסה אותם לתוך משתנה אחד ע"מ שיהוו קובץ טקסט מאוחד
 
@@ -54,15 +56,17 @@ class Process:
     def split_sentence(self,content):
         sentences = content.split('.')
         self.split_words(sentences)
+
 ```
 פונקציה זו מבצעת פיצול למשפפטים בקובץ הטקטס ע"פ נקודה ויוצרת מערך של משפטים מופרדים.
 ```{r}
     def split_words(self,sentences):
         sentences = [re.sub('[%s]' % re.escape(string.punctuation), '', sent) for sent in sentences]
         sentences = [sent.replace('\n', ' ') for sent in sentences]
-        sentences = ["%s %s %s" % (self.sentence_start_token, x, self.sentence_end_token) for x in sentences]
+        sentences = ["%s %s %s" % (self.sentence_start, x, self.sentence_end) for x in sentences]
         words = [nltk.word_tokenize(sent) for sent in sentences]
         self.get_train_set(words)
+
 ```
 פונקציה זו מבצעת פיצול למילים הנפרדות בכל משפט.
 ראשית, הפונקציה משתילה ייצוג לתחילת משפט וסוף משפט לכל משפט, מסירה מכל משפט את סימני הפיסוק שבו ולאחר מכן מבצעת פיצול למילים הנפרדות ויוצרת מערך של כל המילים בטקסט.
@@ -72,15 +76,16 @@ class Process:
     def get_train_set(self,words):
         word_freq = nltk.FreqDist(itertools.chain(*words))
         vocab = word_freq.most_common(self.vocabulary_size - 1)
-        index_to_word = [x[0] for x in vocab]
-        index_to_word.append(self.unknown_token)
-        word_to_index = dict([(w, i) for i, w in enumerate(index_to_word)])
-        self.index_to_word = index_to_word
-        self.word_to_index = word_to_index
+        index_word_dictionary = [x[0] for x in vocab]
+        index_word_dictionary.append(self.unused_token)
+        word_index_dictionary = dict([(w, i) for i, w in enumerate(index_word_dictionary)])
+        self.index_word_dictionary = index_word_dictionary
+        self.word_index_dictionary = word_index_dictionary
         for i, sent in enumerate(words):
-            words[i] = [w if w in word_to_index else self.unknown_token for w in sent]
-        self.X_train = numpy.asarray([[word_to_index[w] for w in sent[:-1]] for sent in words])
-        self.y_train = numpy.asarray([[word_to_index[w] for w in sent[1:]] for sent in words])
+            words[i] = [w if w in word_index_dictionary else self.unused_token for w in sent]
+        self.train_set = numpy.asarray([[word_index_dictionary[w] for w in sent[:-1]] for sent in words])
+        self.shifted_train = numpy.asarray([[word_index_dictionary[w] for w in sent[1:]] for sent in words])
+
 ```
 פונקציה זו בונה מילון תדירויות עבור כל מילה, כלומר כמה פעמיםהופיעה כל מילה ייחודית בטקסט כולו.
 לאחר מכן, בעזרת המילון שבנינו אנו בוחרים את 2000 המילים השכיחות ביותר בטקסט לשם סיווג טוב יותר.
