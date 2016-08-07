@@ -91,36 +91,38 @@ class Process:
 x_train מכיל מערך של מערכים כאשר כל מערך בו הוא משפט שהמילים בו מיוצגות ע"פ האינדקס המספרי שלהם
 y_train זהה, אך בעל הסטה ימינה לכל מילה במשפט
 
-##שלב רביעי- כתיבת קוד פייתון לאלגוריתם RNN שבאמצעותו יופק מודל לשחזור הנתונים:
+##שלב רביעי- כתיבת קוד פייתון לאלגוריתם RNN 
+באמצעותו יופק מודל לשחזור הנתונים:
+
 המחלקה RNNNumpy:
 
 ```{r}
 class RNNNumpy:
-
-    def __init__(self, word_dim, hidden_dim=100, bptt_truncate=4):
+    def __init__(self, wordDimention, hiddenDimention=100, bptt_truncate=4):
         # Assign instance variables
         self.npa = numpy.array
-        self.word_dim = word_dim
-        self.hidden_dim = hidden_dim
+        self.wordDimention = wordDimention
+        self.hiddenDimention = hiddenDimention
         self.bptt_truncate = bptt_truncate
         # Randomly initialize the network parameters
-        self.U = numpy.random.uniform(-numpy.sqrt(1. / word_dim), numpy.sqrt(1. / word_dim), (hidden_dim, word_dim))
-        self.V = numpy.random.uniform(-numpy.sqrt(1. / hidden_dim), numpy.sqrt(1. / hidden_dim), (word_dim, hidden_dim))
-        self.W = numpy.random.uniform(-numpy.sqrt(1. / hidden_dim), numpy.sqrt(1. / hidden_dim), (hidden_dim, hidden_dim))
+        self.U = numpy.random.uniform(-numpy.sqrt(1. / wordDimention), numpy.sqrt(1. / wordDimention), (hiddenDimention, wordDimention))
+        self.V = numpy.random.uniform(-numpy.sqrt(1. / hiddenDimention), numpy.sqrt(1. / hiddenDimention), (wordDimention, hiddenDimention))
+        self.W = numpy.random.uniform(-numpy.sqrt(1. / hiddenDimention), numpy.sqrt(1. / hiddenDimention), (hiddenDimention, hiddenDimention))
+
 ```
 יצרנו מחלקה זו ע"מ לבנות את מודל רשת הנוירונים. 
 לצורך בניית המודל, בחרנו להשתמש ב100 שכבות ואתחלנו בצורה רנדומלית את הוקטורים U,V,W.
 
 ```{r}
-    def forward_propagation(self, x):
+       def forward_propagation(self, x):
         # The total number of time steps
         T = len(x)
         # During forward propagation we save all hidden states in s because need them later.
         # We add one additional element for the initial hidden, which we set to 0
-        s = numpy.zeros((T + 1, self.hidden_dim))
-        s[-1] = numpy.zeros(self.hidden_dim)
+        s = numpy.zeros((T + 1, self.hiddenDimention))
+        s[-1] = numpy.zeros(self.hiddenDimention)
         # The outputs at each time step. Again, we save them for later.
-        o = numpy.zeros((T, self.word_dim))
+        o = numpy.zeros((T, self.wordDimention))
         # For each time step...
         for t in numpy.arange(T):
             # Note that we are indxing U by x[t]. This is the same as multiplying U with a one-hot vector.
@@ -130,6 +132,7 @@ class RNNNumpy:
         return [o, s]
 
         RNNNumpy.forward_propagation = forward_propagation
+
 ```
 פונקציה זו מחזירה לנו שני מערכים. הראשון הוא מערך של מערכים שכל מערך בו מייצג את ההסתברות של כל מילה במאגר המילים שלנו להופיע אחרי המילה הספיציפית במשפט שנשלח כקלט לפונקציה. המערך השני מייצג את המצבים החבויים ויהווה לנו לעזר בשלב מאוחר יותר לצורך חישוב הגדיאנטים U,V,W.
 ```{r}
@@ -138,10 +141,11 @@ class RNNNumpy:
         dist = e / numpy.sum(e)
         return dist
         RNNNumpy.softmax = softmax
+
 ```
 לשם חישוב מערך ההסתבוריות אנו נדרשים להשתמש בפונקציה זו ע"מ לחשב את ההסתברות
 ```{r}
-    def predict(self, x):
+      def predict(self, x):
        # Perform forward propagation and return index of the highest score
         o, s = self.forward_propagation(x)
         return numpy.argmax(o, axis=1)
@@ -150,7 +154,7 @@ class RNNNumpy:
 ```
 פונציה זו מקבלת משפט ומחזירה עבור כל מילה במשפט את האינדקס של המילה בעלת ההסתברות הכי גבוהה להופיע אחרי.
 ```{r}
-    def calculate_total_loss(self, x, y):
+     def calculate_total_loss(self, x, y):
         L = 0
         # For each sentence...
         for i in numpy.arange(len(y)):
@@ -170,29 +174,30 @@ class RNNNumpy:
 ```
 פונקציה זו נועדה למדוד את רמת השגיאות במודל . זאת ע"י השוואת החיזוי שהופק ע"י המודל לעומת טקסט המקור, זאת ע"מ לשפר ולאמן את המודל בתהליך איטרטיבי וע"מ לשפר את הגראדינטים (המשקולות).
 ```{r}
-    def bptt(self, x, y):
+   def bptt(self, x, y):
         T = len(y)
         # Perform forward propagation
         o, s = self.forward_propagation(x)
         # We accumulate the gradients in these variables
-        dLdU = numpy.zeros(self.U.shape)
-        dLdV = numpy.zeros(self.V.shape)
-        dLdW = numpy.zeros(self.W.shape)
+        U_weight = numpy.zeros(self.U.shape)
+        V_weight = numpy.zeros(self.V.shape)
+        W_weight = numpy.zeros(self.W.shape)
         delta_o = o
         delta_o[numpy.arange(len(y)), y] -= 1.
         # For each output backwards...
         for t in numpy.arange(T)[::-1]:
-            dLdV += numpy.outer(delta_o[t], s[t].T)
+            V_weight += numpy.outer(delta_o[t], s[t].T)
             # Initial delta calculation
             delta_t = self.V.T.dot(delta_o[t]) * (1 - (s[t] ** 2))
             # Backpropagation through time (for at most self.bptt_truncate steps)
             for bptt_step in numpy.arange(max(0, t - self.bptt_truncate), t + 1)[::-1]:
                 # print "Backpropagation step t=%d bptt step=%d " % (t, bptt_step)
-                dLdW += numpy.outer(delta_t, s[bptt_step - 1])
-                dLdU[:, x[bptt_step]] += delta_t
+                W_weight += numpy.outer(delta_t, s[bptt_step - 1])
+                U_weight[:, x[bptt_step]] += delta_t
                 # Update delta for next step
                 delta_t = self.W.T.dot(delta_t) * (1 - s[bptt_step - 1] ** 2)
-        return [dLdU, dLdV, dLdW]
+        return [U_weight, V_weight, W_weight]
+
 ```
 
 ע"מ לחשב את הגראדינטים אשר ישמשו אותנו בפונקציה הבאה נשתמש  בפונקציה זו. 
@@ -202,11 +207,12 @@ class RNNNumpy:
     # Performs one step of SGD.
     def sgd_step(self, x, y, learning_rate):
         # Calculate the gradients
-        dLdU, dLdV, dLdW = self.bptt(x, y)
+        U_weight, V_weight, W_weight = self.bptt(x, y)
         # Change parameters according to gradients and learning rate
-        self.U -= learning_rate * dLdU
-        self.V -= learning_rate * dLdV
-        self.W -= learning_rate * dLdW
+        self.U -= learning_rate * U_weight
+        self.V -= learning_rate * V_weight
+        self.W -= learning_rate * W_weight
+
 ```
 פונקציה זו עוברת באיטרציות על כל סט האימון ובכל איטרציה היא מכוונת את הפרמטרים להפחתת הטעות. אנו מעדכנים את הפרמטרים לכיוון שיפחית את הטעות. הכיוונים ניתנים לנו ע"י הגראדיאנטים ופונקציית ההפסד.
 בנוסף, ישנו משתנה אשר מהוה את קצב הלמידה שמגדיר עבורנו את גודל הצעד שאנו מבצעים כל איטרציה. יורחב עליו במהשך.
