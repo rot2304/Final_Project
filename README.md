@@ -431,11 +431,14 @@ def get_text(path):
 העמודה הכי ימנית מייצגת את  את היחס בין חיתוך המשפטים בין שני הקבצים לבין האיחוד של המשפטים בשני הקבצים.
 
 לדוגמא:
+
   7 -->  1231   0.30     0.25   
   7 So the Fed did the difference we basis where.
     1332 So the Fed did it.
+    
 19 -->  1258   0.20     0.10   19 And this sides system is the same thing.
     1359 We're still talking about the same thing.
+    
 91 -->  1680   0.20     0.09   91 The whole deep system is set up roll.
     1781 The whole clearing system is set up t make sur that you, you almost never have to pa with reserves.
 Chat Conversation End
